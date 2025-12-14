@@ -118,14 +118,8 @@
 				<configuration>
 					<mainClass>com.example.rrs.RrsApplication</mainClass>
 					<includeSystemScope>true</includeSystemScope>
+					<layout>JAR</layout>
 				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>repackage</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
