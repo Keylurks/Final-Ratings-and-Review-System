@@ -9,51 +9,49 @@ WORKDIR /app
 # Copy everything
 COPY . .
 
-# Debug: Check source files exist
-RUN echo "=== Checking source files ===" && find /app/src -name "*.java" | head -10
+# Debug: Check source files exist and show directory structure
+RUN echo "=== Checking project structure ===" && \
+    echo "Current directory:" && pwd && \
+    echo "Files in /app:" && ls -la /app/ && \
+    echo "=== Checking for pom.xml ===" && \
+    test -f /app/pom.xml && echo "✓ pom.xml found" || echo "✗ pom.xml NOT FOUND" && \
+    echo "=== Checking source directory ===" && \
+    ls -la /app/src/ 2>/dev/null || echo "src/ does not exist" && \
+    ls -la /app/src/main/ 2>/dev/null || echo "src/main/ does not exist" && \
+    ls -la /app/src/main/java/ 2>/dev/null || echo "src/main/java/ does not exist" && \
+    echo "=== Finding Java source files ===" && \
+    find /app/src -name "*.java" 2>/dev/null | head -20 || echo "No Java files found"
 
-# Compile - show output to see any errors
-RUN echo "=== Starting Maven compilation ===" && mvn clean compile -DskipTests
+# Compile - show Maven output
+RUN echo "=== Starting Maven compilation ===" && \
+    mvn clean compile -DskipTests
 
-# Check what was created after compilation - verify classes exist
+# Check what was created after compilation
 RUN echo "=== Checking compilation results ===" && \
-    ls -la /app/target/ 2>/dev/null || echo "target directory does not exist" && \
-    echo "=== Verifying RrsApplication.class was compiled ===" && \
-    test -f /app/target/classes/com/example/rrs/RrsApplication.class && \
-    echo "✓ RrsApplication.class found in target/classes!" || \
-    (echo "✗ ERROR: RrsApplication.class NOT FOUND after compilation!" && \
-     echo "Listing target/classes structure:" && \
-     find /app/target/classes -type f 2>/dev/null | head -20 || echo "No files in target/classes" && \
-     exit 1)
+    echo "Target directory exists:" && test -d /app/target && echo "YES" || echo "NO" && \
+    echo "Target contents:" && ls -la /app/target/ 2>/dev/null || echo "target/ does not exist" && \
+    echo "Classes directory:" && ls -la /app/target/classes/ 2>/dev/null || echo "target/classes/ does not exist" && \
+    echo "Looking for RrsApplication.class:" && \
+    find /app/target -name "RrsApplication.class" 2>/dev/null || echo "RrsApplication.class not found"
 
 # Package the application
-RUN mvn package -DskipTests
+RUN echo "=== Packaging application ===" && \
+    mvn package -DskipTests
 
-# Verify the JAR was created and contains the main class - FAIL BUILD if not found
-RUN echo "=== Verifying JAR contains main class ===" && \
+# Verify the JAR was created and contains the main class
+RUN echo "=== Verifying JAR ===" && \
     ls -la /app/target/*.jar && \
-    if jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep -q "BOOT-INF/classes/com/example/rrs/RrsApplication.class"; then \
-        echo "✓ Main class found in BOOT-INF/classes/"; \
-    elif jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep -q "com/example/rrs/RrsApplication.class"; then \
-        echo "✓ Main class found in root"; \
-    else \
-        echo "✗ ERROR: Main class NOT FOUND in JAR!"; \
-        echo "JAR structure (first 50 entries):"; \
-        jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | head -50; \
-        echo "Searching for any com/example entries:"; \
-        jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep "com/example" | head -10 || echo "No com/example entries found"; \
-        echo "Checking BOOT-INF structure:"; \
-        jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep "BOOT-INF" | head -10 || echo "No BOOT-INF found"; \
-        echo "Checking if classes directory exists:"; \
-        ls -la /app/target/classes/com/example/rrs/ 2>/dev/null || echo "Classes not in expected location"; \
-        exit 1; \
-    fi
-
-# Verify classes were compiled
-RUN echo "=== Checking if classes were compiled ===" && \
-    ls -la /app/target/classes/com/example/rrs/ 2>/dev/null || \
-    (echo "Classes directory check:" && \
-     find /app/target -name "*.class" | head -10 || echo "No class files found")
+    echo "=== Checking JAR contents for main class ===" && \
+    (jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep -q "BOOT-INF/classes/com/example/rrs/RrsApplication.class" && \
+     echo "✓ Main class found in BOOT-INF/classes/" || \
+     (jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep -q "com/example/rrs/RrsApplication.class" && \
+      echo "✓ Main class found in root" || \
+      (echo "✗ ERROR: Main class NOT FOUND in JAR!" && \
+       echo "JAR structure (first 50 entries):" && \
+       jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | head -50 && \
+       echo "Searching for any com/example entries:" && \
+       jar tf /app/target/rrs-0.0.1-SNAPSHOT.jar | grep "com/example" | head -10 || echo "No com/example entries" && \
+       exit 1)))
 
 # Find and copy the Spring Boot JAR (not the .original one) to a known location
 RUN find /app/target -name "rrs-*.jar" ! -name "*.original" -type f -exec cp {} /app/app.jar \;
