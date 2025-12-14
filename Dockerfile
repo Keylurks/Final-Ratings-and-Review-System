@@ -12,13 +12,27 @@ WORKDIR /app
 # Copy everything (pom.xml and src directory)
 COPY . .
 
-# Compile and package the application into a JAR file, skipping tests.
-RUN mvn clean compile package -q -DskipTests
+# Compile first to ensure classes are created
+RUN mvn clean compile -q -DskipTests
 
-# Verify the JAR was created and contains classes
+# Verify classes were compiled
+RUN test -f /app/target/classes/com/example/rrs/RrsApplication.class || \
+    (echo "ERROR: RrsApplication.class not found after compilation" && \
+     find /app/target -name "*.class" | head -10 && \
+     ls -la /app/target/classes/ 2>/dev/null || echo "target/classes does not exist" && \
+     exit 1)
+
+# Package the application
+RUN mvn package -q -DskipTests
+
+# Verify the JAR was created and contains classes (Spring Boot puts classes in BOOT-INF/classes/)
 RUN ls -la /app/target/*.jar && \
-    jar tf /app/target/rrs-*.jar | grep -q "com/example/rrs/RrsApplication.class" || \
-    (echo "ERROR: Main class not found in JAR" && exit 1)
+    (jar tf /app/target/rrs-*.jar | grep -q "BOOT-INF/classes/com/example/rrs/RrsApplication.class" || \
+     jar tf /app/target/rrs-*.jar | grep -q "com/example/rrs/RrsApplication.class") || \
+    (echo "ERROR: Main class not found in JAR. Checking JAR structure:" && \
+     echo "JAR files:" && ls -la /app/target/*.jar && \
+     echo "First 50 entries in JAR:" && jar tf /app/target/rrs-*.jar | head -50 && \
+     exit 1)
 
 # Find and copy the Spring Boot JAR (not the .original one) to a known location
 RUN find /app/target -name "rrs-*.jar" ! -name "*.original" -type f -exec cp {} /app/app.jar \;
