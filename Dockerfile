@@ -12,14 +12,25 @@ WORKDIR /app
 # Copy everything (pom.xml and src directory)
 COPY . .
 
-# Compile first to ensure classes are created
-RUN mvn clean compile -q -DskipTests
+# Debug: Check source files exist
+RUN echo "=== Checking source files ===" && \
+    find /app/src -name "*.java" | head -10 && \
+    ls -la /app/src/main/java/com/example/rrs/ || echo "Source directory not found"
+
+# Compile with output to see what's happening (remove -q to see errors)
+RUN mvn clean compile -DskipTests || \
+    (echo "=== Compilation failed, showing errors ===" && \
+     mvn clean compile -e -DskipTests && \
+     exit 1)
 
 # Verify classes were compiled
 RUN test -f /app/target/classes/com/example/rrs/RrsApplication.class || \
     (echo "ERROR: RrsApplication.class not found after compilation" && \
-     find /app/target -name "*.class" | head -10 && \
+     echo "Checking target directory:" && \
+     ls -la /app/target/ 2>/dev/null || echo "target directory does not exist" && \
+     echo "Checking classes directory:" && \
      ls -la /app/target/classes/ 2>/dev/null || echo "target/classes does not exist" && \
+     find /app -name "*.class" 2>/dev/null | head -10 && \
      exit 1)
 
 # Package the application
