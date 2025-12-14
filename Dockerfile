@@ -13,14 +13,22 @@ WORKDIR /app
 COPY . .
 
 # Compile and package the application into a JAR file, skipping tests.
-RUN mvn clean package -q -DskipTests
+RUN mvn clean compile package -q -DskipTests
+
+# Verify the JAR was created and contains classes
+RUN ls -la /app/target/*.jar && \
+    jar tf /app/target/rrs-*.jar | grep -q "com/example/rrs/RrsApplication.class" || \
+    (echo "ERROR: Main class not found in JAR" && exit 1)
+
+# Find and copy the Spring Boot JAR (not the .original one) to a known location
+RUN find /app/target -name "rrs-*.jar" ! -name "*.original" -type f -exec cp {} /app/app.jar \;
 
 # ========= Run stage =========
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy fat jar from build stage
-COPY --from=build /app/target/*.jar /app/app.jar
+COPY --from=build /app/app.jar /app/app.jar
 
 # Health + port
 ENV PORT=8081
