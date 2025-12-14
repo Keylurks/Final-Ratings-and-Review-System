@@ -1,35 +1,36 @@
-# Maven
+# =========================
+# Maven Build Artifacts
+# These files are generated during the build and should not be copied
+# into the Docker build context.
+# =========================
 target/
 
-# IDE
+# Ignore the Maven Wrapper executable and configuration directory, 
+# as we are installing Maven via apt-get in the Dockerfile.
+mvnw
+mvnw.cmd
+.mvn/
+
+# =========================
+# IDE & OS Specific Files
+# These are environment-specific files that are not needed to run the app.
+# =========================
 .idea/
 .project
 .classpath
 .settings/
 *.iml
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Git
+# =========================
+# Version Control
+# The repository history is not needed for the runtime environment.
+# =========================
 .git
 .gitignore
-=======
-# Maven
-target/
 
-# IDE
-.idea/
-.project
-.classpath
-.settings/
-*.iml
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Git
-.git
-.gitignore
+# =========================
+# Docker-specific files
+# =========================
+Dockerfile
