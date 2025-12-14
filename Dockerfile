@@ -13,7 +13,7 @@ WORKDIR /app
 COPY . .
 
 # Compile and package the application into a JAR file, skipping tests.
-RUN mvn -q -DskipTests package
+RUN mvn clean package -q -DskipTests
 
 # ========= Run stage =========
 FROM eclipse-temurin:17-jre
