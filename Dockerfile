@@ -9,14 +9,8 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy pom.xml first for dependency caching
-COPY pom.xml .
-
-# Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN mvn dependency:go-offline -B
-
-# Copy the rest of the source code
-COPY src ./src
+# Copy everything (pom.xml and src directory)
+COPY . .
 
 # Compile and package the application into a JAR file, skipping tests.
 RUN mvn -q -DskipTests package
